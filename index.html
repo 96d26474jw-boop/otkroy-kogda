@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#FAF8F3">
+  <title>Открой, когда…</title>
+  <style>
+    :root {
+      --ivory: #FAF8F3;
+      --paper: #FFFDF9;
+      --beige: #E9DDCD;
+      --sand: #C5AD92;
+      --coffee: #55483C;
+      --muted: #8C7B6B;
+      --line: rgba(85,72,60,.13);
+      --shadow: 0 12px 30px rgba(78,61,43,.10);
+    }
+    * { box-sizing: border-box; }
+    html { background: var(--ivory); scroll-behavior: smooth; }
+    body {
+      margin: 0; color: var(--coffee); background:
+        radial-gradient(ellipse at 15% 0%, rgba(233,221,205,.42), transparent 38%),
+        var(--ivory);
+      font-family: Georgia, "Times New Roman", serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button { font: inherit; }
+    .page { width: min(100%, 520px); margin: 0 auto; padding: 34px 20px calc(36px + env(safe-area-inset-bottom)); }
+    .topline { display:flex; justify-content:center; align-items:center; gap:10px; color:var(--muted); font: 10px/1.4 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing:.20em; text-transform:uppercase; }
+    .star { color:var(--sand); font-size:14px; }
+    header { text-align:center; padding: 35px 4px 28px; }
+    h1 { font-size: clamp(34px, 9vw, 44px); font-weight:400; letter-spacing:-.045em; line-height:1.08; margin:0; }
+    .subtitle { font-size:14px; line-height:1.7; color:var(--muted); margin:14px auto 0; max-width:270px; }
+    .rule { width:42px; height:1px; background:var(--sand); margin:24px auto 0; }
+    .instruction { text-align:center; font: 11px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing:.03em; color:var(--muted); margin:0 0 20px; }
+    .envelopes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+    .envelope-card { min-width:0; position:relative; }
+    .envelope-button {
+      appearance:none; border:0; padding:0; width:100%; text-align:left; color:inherit;
+      background:transparent; cursor:pointer; display:block; border-radius:14px;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .envelope-button:focus-visible { outline:2px solid var(--sand); outline-offset:5px; }
+    .envelope-art {
+      position:relative; aspect-ratio:1.38 / 1; overflow:hidden; border:1px solid rgba(125,99,73,.17);
+      border-radius:5px; background:
+        linear-gradient(145deg, rgba(255,255,255,.72), transparent 45%),
+        repeating-linear-gradient(0deg, rgba(112,87,61,.018) 0 1px, transparent 1px 4px),
+        linear-gradient(135deg, #F0E6D9, #E7D8C6);
+      box-shadow: 0 6px 13px rgba(78,61,43,.08), inset 0 1px 0 rgba(255,255,255,.8);
+      transition: transform .28s ease, box-shadow .28s ease, filter .28s ease;
+      transform-origin:center;
+    }
+    .envelope-art:before {
+      content:""; position:absolute; inset:0;
+      background: linear-gradient(34deg, transparent 49.3%, rgba(117,91,65,.20) 49.7%, rgba(255,255,255,.38) 50%, transparent 50.6%),
+                  linear-gradient(-34deg, transparent 49.3%, rgba(117,91,65,.16) 49.7%, rgba(255,255,255,.32) 50%, transparent 50.6%);
+      opacity:.85;
+    }
+    .flap {
+      position:absolute; inset:0 0 auto; height:64%;
+      clip-path:polygon(0 0, 100% 0, 50% 100%);
+      background:linear-gradient(160deg, #F8F0E6, #E2D0BB);
+      border-bottom:1px solid rgba(125,99,73,.14);
+      filter: drop-shadow(0 2px 2px rgba(78,61,43,.05));
+      transform-origin:50% 0; transition:transform .55s ease, opacity .45s ease;
+    }
+    .seal {
+      position:absolute; left:50%; top:49%; transform:translate(-50%,-50%);
+      display:grid; place-items:center; width:27px; height:27px; border-radius:50%;
+      border:1px solid rgba(150,119,86,.50); background:rgba(250,248,243,.78);
+      color:#A78D70; font-size:12px; z-index:2;
+    }
+    .envelope-label { padding:11px 2px 0; }
+    .number { font:10px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing:.14em; color:var(--sand); }
+    .label-title { font-size:15px; line-height:1.32; margin-top:3px; }
+    .state { min-height:15px; font:10px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; color:var(--muted); margin-top:4px; }
+    .envelope-card.selected { z-index:3; }
+    .envelope-card.selected .envelope-art { transform:scale(1.035); box-shadow:0 14px 27px rgba(78,61,43,.16); }
+    .envelope-card.opening .flap { transform:rotateX(180deg); opacity:.15; }
+    .envelope-card.opening .seal { opacity:0; transition:opacity .2s ease; }
+    .envelope-card.locked .envelope-art { filter:saturate(.65); }
+    .envelope-card.locked .seal { color:var(--muted); }
+    .letter-view { display:none; margin-top:24px; animation:appear .55s ease both; }
+    .letter-view.visible { display:block; }
+    @keyframes appear { from {opacity:0; transform:translateY(9px)} to {opacity:1; transform:translateY(0)} }
+    .letter-paper {
+      position:relative; background:
+        repeating-linear-gradient(0deg, rgba(112,87,61,.014) 0 1px, transparent 1px 5px),
+        var(--paper);
+      border:1px solid rgba(125,99,73,.13); border-radius:4px;
+      padding:25px 21px 23px; box-shadow:var(--shadow);
+    }
+    .letter-kicker { color:var(--sand); font:10px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; letter-spacing:.16em; text-transform:uppercase; }
+    h2 { font-size:25px; line-height:1.2; font-weight:400; margin:10px 0 20px; letter-spacing:-.025em; }
+    .letter-content { white-space:pre-line; font-size:16px; line-height:1.82; overflow-wrap:anywhere; }
+    .letter-content p { margin:0 0 16px; }
+    .letter-content p:last-child { margin-bottom:0; }
+    .letter-actions { display:flex; justify-content:space-between; gap:12px; align-items:center; margin-top:18px; }
+    .small-button { border:1px solid var(--line); border-radius:999px; background:transparent; padding:10px 14px; color:var(--coffee); font:11px/1.2 -apple-system, BlinkMacSystemFont, sans-serif; cursor:pointer; }
+    .small-button:active { background:var(--beige); }
+    .letter-note { font:10px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; color:var(--muted); }
+    .footer { text-align:center; padding:34px 0 0; color:var(--muted); font-size:12px; line-height:1.7; }
+    .footer .star { display:block; margin-bottom:7px; }
+    .hidden { display:none !important; }
+    @media (max-width:360px) {
+      .page { padding-left:15px; padding-right:15px; }
+      .envelopes { gap:11px; }
+      .label-title { font-size:14px; }
+      .letter-paper { padding:22px 17px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration:.01ms !important; transition-duration:.01ms !important; scroll-behavior:auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="topline"><span class="star">✦</span><span>маленький архив для тебя</span><span class="star">✦</span></div>
+    <header>
+      <h1>Открой,<br>когда…</h1>
+      <p class="subtitle">восемь маленьких конвертов на разные случаи жизни</p>
+      <div class="rule"></div>
+    </header>
+    <p class="instruction">нажми на конверт, а затем — ещё раз, чтобы открыть ✦</p>
+
+    <section class="envelopes" id="envelopes" aria-label="Конверты">
+      <article class="envelope-card" data-id="01">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 1">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">01</div><div class="label-title">когда тебе грустно</div><div class="state"></div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="02">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 2">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">02</div><div class="label-title">когда нужен повод улыбнуться</div><div class="state"></div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="03">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 3">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">03</div><div class="label-title">когда ты в себе сомневаешься</div><div class="state"></div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="04">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 4">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">04</div><div class="label-title">когда хочется всё бросить</div><div class="state"></div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="05">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 5">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">05</div><div class="label-title">наше маленькое собрание</div><div class="state">добавим позже</div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="06">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 6">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">06</div><div class="label-title">когда скучно</div><div class="state">мини-викторина</div></div>
+        </button>
+      </article>
+      <article class="envelope-card" data-id="07">
+        <button class="envelope-button" type="button" aria-label="Открыть конверт 7">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">✦</div></div>
+          <div class="envelope-label"><div class="number">07</div><div class="label-title">когда ты собой гордишься</div><div class="state"></div></div>
+        </button>
+      </article>
+      <article class="envelope-card locked" data-id="08">
+        <button class="envelope-button" type="button" aria-label="Праздничный конверт, откроется 21 октября">
+          <div class="envelope-art"><div class="flap"></div><div class="seal">⌑</div></div>
+          <div class="envelope-label"><div class="number">08</div><div class="label-title">открой 21 октября</div><div class="state">откроется в день рождения</div></div>
+        </button>
+      </article>
+    </section>
+
+    <section class="letter-view" id="letterView" aria-live="polite">
+      <div class="letter-paper">
+        <div class="letter-kicker" id="letterKicker">письмо 01</div>
+        <h2 id="letterTitle"></h2>
+        <div class="letter-content" id="letterContent"></div>
+        <div id="letterExtra"></div>
+      </div>
+      <div class="letter-actions">
+        <button class="small-button" id="backButton" type="button">← к конвертам</button>
+        <span class="letter-note" id="readNote">можно перечитывать ✦</span>
+      </div>
+    </section>
+
+    <footer class="footer"><span class="star">✦</span>сделано с теплом и специально для тебя</footer>
+  </main>
+
+  <script>
+    const birthdayMonth = 9; // October (JavaScript months start at 0)
+    const birthdayDay = 21;
+
+    const letters = {
+      "01": {
+        title: "когда тебе грустно",
+        paragraphs: [
+          "я не знаю точно, когда ты откроешь это, но хочу сказать:",
+          "если сегодня не самый лучший день для тебя, ты расстроен, возможно, злишься и ненавидишь весь мир, просто помни: один плохой день ≠ плохая жизнь навеки",
+          "сегодня у тебя есть возможность погрустить, но завтра все ещё наступит, и грусть отступит. а это значит, что у тебя будет день лучше, чем вчера ))",
+          "не грусти, мармеладка"
+        ]
+      },
+      "02": {
+        title: "когда нужен повод улыбнуться",
+        paragraphs: [
+          "я знаю, что ты не особо-то любишь в дне сурка замечать маленькие вещи, которые позволяют тебя улыбаться",
+          "нооо, я искренне надеюсь, что когда этот повод всё-таки будет очень нужен, ты зайдешь сюда"
+        ],
+        extra: "<div class=\"letter-note\" style=\"margin-top:18px\">[сюда добавим твоё оригинальное фото — без изменений]</div>"
+      },
+      "03": {
+        title: "когда ты в себе сомневаешься",
+        paragraphs: [
+          "если ты в себе все ещё сомневаешься, то я напомню:",
+          "• ты в 6 классе СДАЛ экзамен по еврейским традициям\n• ты СДАЛ два экзамена в 7 классе\n• ты СДАШЬ экзамены в 8 классе",
+          "и вообще я тобой горжусь поэтому не вешать нос и only keep going перед всеми препятствиями, даже если сложно",
+          "и небольшая моя личная цитатка:",
+          "«любая трудность возмещается легкостью»"
+        ]
+      },
+      "04": {
+        title: "когда тебе хочется всё бросить",
+        paragraphs: [
+          "я понимаю, то что твое состояние примерно:",
+          "[сюда добавим твоё оригинальное фото с лошадью]",
+          "но я всегда тебе буду говорить:",
+          "[сюда добавим оригинальное фото с котиком «все будет хорошо»]",
+          "и",
+          "[сюда добавим оригинальное фото с котиком «я всегда рядом»]"
+        ]
+      },
+      "05": {
+        title: "наше маленькое собрание",
+        paragraphs: [
+          "этот конверт пока готовится ✦",
+          "сюда добавим ваши разговоры и мемы, когда подруга их найдёт."
+        ]
+      },
+      "06": {
+        title: "какое ты животное?",
+        paragraphs: [
+          "здесь будет интерактивная викторина из семи вопросов — с результатом: кот, енот, панда или лемурчик."
+        ]
+      },
+      "07": {
+        title: "когда ты собой гордишься",
+        paragraphs: [
+          "сегодня особенный день, и я безумно рада, то что ты гордишься собой!",
+          "я гордилась тобой всегда, поэтому, для меня это то, что наконец должно было случиться — ты тоже собой гордишься!!",
+          "продолжай гордиться, съешь что-нибудь вкусное и завари чаек, или подари себе кубок. гордиться собой нужно по серьезному 😈😈😈😈",
+          "либо напиши юле, она будет любить тебя и гордиться x2 (ваши дети тоже))"
+        ],
+        extra: `<svg viewBox="0 0 110 100" width="88" role="img" aria-label="минималистичный кубок" style="display:block;margin:22px auto 0;fill:none;stroke:#C5AD92;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round"><path d="M34 13h42v17c0 18-9 28-21 28S34 48 34 30V13Z"/><path d="M34 20H20v8c0 12 7 18 17 18M76 20h14v8c0 12-7 18-17 18M55 58v18M41 77h28M36 85h38M41 77l-5 8M69 77l5 8"/><path d="M55 23l2.5 5 5.5.8-4 3.9 1 5.5-5-2.6-5 2.6 1-5.5-4-3.9 5.5-.8Z"/></svg>`
+      },
+      "08": {
+        title: "с днём рожденияяяяяя!!!",
+        paragraphs: [
+          "поздравляю, ты наконец нашел письмо-поздравление!",
+          "(P.S. я специально оставила для него место, тк хотела всё-таки поздравление сделать тож…)",
+          "я поздравляю тебя с твоим днём рождения, желаю детей от юли, денег, богатства, кучу верных друзей, паспорт Америки",
+          "хотела сказать, то что ты очень важный человек в моей жизни, я безумно счастлива, то что мы познакомились (опять же, единственное достижение от школы менахем ээ), спасибо, то что ты есть (твоей маме особенно спасибо))",
+          "я очень хотела сделать особенный подарок (даже если ты начал тогда что-то подозревать), и поэтому решила сделать такой формат — мини-сайт!! очень надеюсь, то что тебе понравилась концепция 🫰🏼",
+          "надеюсь, скоро увидимся и отпразднуем ТВОЙ день в живую!!",
+          "а также желаю, чтобы этот день стал запоминающимся, и чтобы этот день прошёл так, как ты всегда мечтал, чтобы он прошёл!! ведь это единственный день в году, когда у тебя все в твоих ногах >;33",
+          "с днём рожденияяяяяя!!! обнимаю"
+        ]
+      }
+    };
+
+    const cards = [...document.querySelectorAll(".envelope-card")];
+    const letterView = document.getElementById("letterView");
+    const titleEl = document.getElementById("letterTitle");
+    const contentEl = document.getElementById("letterContent");
+    const kickerEl = document.getElementById("letterKicker");
+    const extraEl = document.getElementById("letterExtra");
+    let selectedId = null;
+    const opened = new Set();
+
+    function birthdayUnlocked() {
+      const now = new Date();
+      return now.getMonth() > birthdayMonth ||
+        (now.getMonth() === birthdayMonth && now.getDate() >= birthdayDay);
+    }
+    function setState(card, text) {
+      const state = card.querySelector(".state");
+      if (state) state.textContent = text;
+    }
+    function showLetter(id) {
+      const data = letters[id];
+      if (!data) return;
+      titleEl.textContent = data.title;
+      kickerEl.textContent = "письмо " + id;
+      contentEl.replaceChildren();
+      data.paragraphs.forEach((paragraph) => {
+        const p = document.createElement("p");
+        p.textContent = paragraph;
+        contentEl.appendChild(p);
+      });
+      extraEl.innerHTML = data.extra || "";
+      letterView.classList.add("visible");
+      letterView.scrollIntoView({ behavior: "smooth", block: "start" });
+      opened.add(id);
+      const card = document.querySelector(`[data-id="${id}"]`);
+      if (card) setState(card, "уже открыто · можно перечитать");
+    }
+
+    cards.forEach((card) => {
+      const button = card.querySelector(".envelope-button");
+      const id = card.dataset.id;
+      button.addEventListener("click", () => {
+        if (id === "08" && !birthdayUnlocked()) {
+          setState(card, "ещё немного подождать ✦");
+          return;
+        }
+        if (selectedId !== id) {
+          cards.forEach(c => c.classList.remove("selected"));
+          card.classList.add("selected");
+          selectedId = id;
+          setState(card, opened.has(id) ? "нажми ещё раз, чтобы перечитать" : "нажми ещё раз, чтобы открыть");
+          return;
+        }
+        card.classList.add("opening");
+        window.setTimeout(() => {
+          card.classList.remove("opening");
+          showLetter(id);
+          selectedId = null;
+          cards.forEach(c => c.classList.remove("selected"));
+        }, 220);
+      });
+    });
+
+    document.getElementById("backButton").addEventListener("click", () => {
+      letterView.classList.remove("visible");
+      selectedId = null;
+      cards.forEach(c => c.classList.remove("selected", "opening"));
+      document.getElementById("envelopes").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  </script>
+</body>
+</html>
